@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="BrokenLineStyle">
+        <attr name="ShowGradation" format="boolean"/>
+        <attr name="AspectRatio" format="float"/>
+        <attr name="Lines" format="integer"/>
+        <attr name="SpotRadius" format="dimension"/>
+        <attr name="SpotInnerRadius" format="dimension"/>
+        <attr name="ClickRange" format="dimension"/>
+        <attr name="TextSize" format="dimension"/>
+        <attr name="LeftPadding" format="dimension"/>
+        <attr name="BottomPadding" format="dimension"/>
+        <attr name="TopPadding" format="dimension"/>
+        <attr name="RightPadding" format="dimension"/>
+        <attr name="TextColor" format="color"/>
+        <attr name="TextSelectedColor" format="color"/>
+        <attr name="CurveLineColor" format="color"/>
+        <attr name="TextBgColor" format="color"/>
+        <attr name="HorizontalLineColor" format="color"/>
+    </declare-styleable>
+
+</resources>
