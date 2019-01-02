@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="BrokenLineStyle">
-        <attr name="ShowGradation" format="boolean"/>
-        <attr name="AspectRatio" format="float"/>
-        <attr name="Lines" format="integer"/>
-        <attr name="SpotRadius" format="dimension"/>
-        <attr name="SpotInnerRadius" format="dimension"/>
-        <attr name="ClickRange" format="dimension"/>
-        <attr name="TextSize" format="dimension"/>
-        <attr name="LeftPadding" format="dimension"/>
-        <attr name="BottomPadding" format="dimension"/>
-        <attr name="TopPadding" format="dimension"/>
-        <attr name="RightPadding" format="dimension"/>
+        <attr name="ShowGradation" format="boolean"/><!--渐变色显示与隐藏，显示为曲线图，隐藏为折线图-->
+        <attr name="AspectRatio" format="float"/><!--高度与宽度的比值-->
+        <attr name="Lines" format="integer"/><!--y轴的行数-->
+        <attr name="SpotRadius" format="dimension"/><!--点的半径-->
+        <attr name="SpotInnerRadius" format="dimension"/><!--选中白点的半径-->
+        <attr name="ClickRange" format="dimension"/><!--点击圆点的误差范围-->
+        <attr name="TextSize" format="dimension"/><!--字体大小-->
+        <attr name="LeftPadding" format="dimension"/><!--折线图与左边文字的距离-->
+        <attr name="BottomPadding" format="dimension"/><!--折线图与底部文字的距离-->
+        <attr name="TopPadding" format="dimension"/><!--折线图上边距-->
+        <attr name="RightPadding" format="dimension"/><!--折线图右边距-->
         <attr name="TextColor" format="color"/>
         <attr name="TextSelectedColor" format="color"/>
         <attr name="CurveLineColor" format="color"/>

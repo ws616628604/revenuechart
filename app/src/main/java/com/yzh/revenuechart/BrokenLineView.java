@@ -14,8 +14,10 @@ import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Scroller;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -81,6 +83,11 @@ public class BrokenLineView extends View {
     private int mTextBgColor;
     private int mSelectIndex;
     private Runnable mRunnable;
+    private float mX;
+    private int mScrollX;
+    private VelocityTracker mVelocityTracker;
+    private Scroller mScroller;
+    private int mDw;
 
     public BrokenLineView(Context context) {
         this(context, null);
@@ -88,6 +95,7 @@ public class BrokenLineView extends View {
 
     public BrokenLineView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        mScroller = new Scroller(context);
         dm = new DisplayMetrics();
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         wm.getDefaultDisplay().getMetrics(dm);
@@ -136,7 +144,6 @@ public class BrokenLineView extends View {
 
         mBgPaint.setColor(mTextBgColor);
         mBgPaint.setStyle(Paint.Style.FILL);
-        setLayerType(LAYER_TYPE_SOFTWARE, mBgPaint);
         mBgPaint.setMaskFilter(new BlurMaskFilter(dip2px(2), BlurMaskFilter.Blur.SOLID));
 
     }
@@ -184,6 +191,7 @@ public class BrokenLineView extends View {
         if (xRawData == null || mYDatas == null) {
             return;
         }
+        //计算需要用到的数值
         initData();
         // 画直线（横向）
         drawAllXLine(canvas);
@@ -192,9 +200,8 @@ public class BrokenLineView extends View {
         mClickRects = new ArrayList<>();
         for (int i = 0; i < mYDatas.size(); i++) {
             ArrayList<Double> yData = mYDatas.get(i);
-            // 点的操作设置
+            // 获取各个点的坐标
             Point[] points = getPoints(yData);
-
             if (mShowGradation) {
                 //绘制渐变
                 drawGradation(canvas, points);
@@ -321,58 +328,117 @@ public class BrokenLineView extends View {
         mDy = (getHeight() - getPaddingTop() - getPaddingBottom() - mTopPadding - mBottomPadding - mFontMetrics.bottom - mTextHeight * 2) / mLines;
     }
 
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+
+        //手指位置地点
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                View parent = (View) getParent();
+                mDw = getWidth() - parent.getWidth();
+                if (mDw > 0) {
+                    mScroller.forceFinished(true);
+                    if (mVelocityTracker == null) {
+                        mVelocityTracker = VelocityTracker.obtain();
+                        mVelocityTracker.addMovement(event);
+                    }
+                    mScrollX = getScrollX();
+                    mX = event.getX();
+                }
+                showInfo(event);
+
+                break;
+            case MotionEvent.ACTION_MOVE:
+                if (mDw > 0) {
+                    mVelocityTracker.addMovement(event);
+
+                    float x = event.getX();
+                    int dx = (int) (mX - x + mScrollX);
+                    if (dx < 0) {
+                        dx = 0;
+                    }
+                    if (dx > mDw) {
+                        dx = mDw;
+                    }
+                    scrollTo(dx, 0);
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+                if (mDw > 0) {
+                    mVelocityTracker.addMovement(event);
+                    mVelocityTracker.computeCurrentVelocity(1000);
+                    int velocityX = (int) mVelocityTracker.getXVelocity();
+                    mScroller.fling(getScrollX(), 0, -velocityX, 0, 0, mDw, 0, 0);
+                    postInvalidate();
+                    if (mVelocityTracker != null) {
+                        mVelocityTracker.recycle();
+                        mVelocityTracker = null;
+                    }
+                }
+                break;
+        }
+        return true;
+    }
 
     @Override
-    public boolean dispatchTouchEvent(MotionEvent event) {
-        if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            int item = -1;
-            Map<Integer, Float> index = new HashMap<>();
-            for (int i = mClickRects.size() - 1; i >= 0; i--) {
-                ArrayList<Rect> rects = mClickRects.get(i);
-
-                float x = event.getX();
-                float y = event.getY();
-                if (item != -1) {
-                    Rect rect = rects.get(item);
-                    if (rect.contains((int) x, (int) y)) {
-                        float dx = rect.centerX() - x;
-                        float dy = rect.centerY() - y;
-                        index.put(i, dx * dx + dy * dy);
-                        break;
-                    }
-                    continue;
-                }
-
-                for (int j = 0; j < rects.size(); j++) {
-                    Rect rect = rects.get(j);
-                    if (rect.contains((int) x, (int) y)) {
-                        float dx = rect.centerX() - x;
-                        float dy = rect.centerY() - y;
-                        mSelectItem = j;
-                        item = j;
-                        index.put(i, dx * dx + dy * dy);
-                        break;
-                    }
-                }
-            }
-            if (!index.isEmpty()) {
-                Iterator<Map.Entry<Integer, Float>> iterator = index.entrySet().iterator();
-                float temp = Float.MAX_VALUE;
-                while (iterator.hasNext()) {
-                    Map.Entry<Integer, Float> next = iterator.next();
-                    Float value = next.getValue();
-                    if (value < temp) {
-                        temp = value;
-                        mSelectIndex = next.getKey();
-                    }
-                }
-                if (mOnclickListener != null) {
-                }
-            }
-            invalidate();
-
+    public void computeScroll() {
+        // 如果返回true，表示动画还没有结束
+        // 因为前面startScroll，所以只有在startScroll完成时 才会为false
+        if (mScroller.computeScrollOffset()) {
+            // 产生了动画效果 每次滚动一点
+            scrollTo(mScroller.getCurrX(), 0);
+            //刷新View 否则效果可能有误差
+            postInvalidate();
         }
-        return super.dispatchTouchEvent(event);
+    }
+
+    private void showInfo(MotionEvent event) {
+        int item = -1;
+        Map<Integer, Float> index = new HashMap<>();
+        for (int i = mClickRects.size() - 1; i >= 0; i--) {
+            ArrayList<Rect> rects = mClickRects.get(i);
+
+            float x = event.getX() + mScrollX;
+            float y = event.getY();
+            if (item != -1) {
+                Rect rect = rects.get(item);
+                if (rect.contains((int) x, (int) y)) {
+                    float dx = rect.centerX() - x;
+                    float dy = rect.centerY() - y;
+                    index.put(i, dx * dx + dy * dy);
+                    break;
+                }
+                continue;
+            }
+
+            for (int j = 0; j < rects.size(); j++) {
+                Rect rect = rects.get(j);
+                if (rect.contains((int) x, (int) y)) {
+                    float dx = rect.centerX() - x;
+                    float dy = rect.centerY() - y;
+                    mSelectItem = j;
+                    item = j;
+                    index.put(i, dx * dx + dy * dy);
+                    break;
+                }
+            }
+        }
+        if (!index.isEmpty()) {
+            Iterator<Map.Entry<Integer, Float>> iterator = index.entrySet().iterator();
+            float temp = Float.MAX_VALUE;
+            while (iterator.hasNext()) {
+                Map.Entry<Integer, Float> next = iterator.next();
+                Float value = next.getValue();
+                if (value < temp) {
+                    temp = value;
+                    mSelectIndex = next.getKey();
+                }
+            }
+            if (mOnclickListener != null) {
+            }
+        }
+        invalidate();
+
     }
 
     /**
